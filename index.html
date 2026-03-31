@@ -128,30 +128,30 @@
     .ab-tally strong { color: var(--text); }
 
     /* ── RESULTS ── */
-    .results-wrap { padding-bottom: 40px; }
+    .results-wrap { }
     .results-stats { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
     .stat-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 16px; }
     .stat-chip .n { font-size: 22px; font-weight: 700; display: block; }
     .stat-chip .l { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .1em; }
     .stat-chip.green .n { color: var(--up); }
-    .results-table { width: 100%; border-collapse: collapse; }
-    .results-table th { text-align: left; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--border); }
-    .results-table td { padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    .results-table tbody tr:hover td { background: var(--surface); }
-    .rank { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 50%; font-size: 10px; font-weight: 700; background: var(--surface3); color: var(--muted); }
+    .results-list { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 40px; }
+    .res-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; }
+    .res-card:hover { border-color: var(--border-h); }
+    .rank { display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; border-radius: 50%; font-size: 10px; font-weight: 700; background: var(--surface3); color: var(--muted); flex-shrink: 0; margin-top: 1px; }
     .rk-g { background: rgba(255,215,0,.15); color: var(--gold); }
     .rk-s { background: rgba(187,187,187,.12); color: var(--silver); }
     .rk-b { background: rgba(205,127,50,.15); color: var(--bronze); }
-    .res-name { font-weight: 600; font-size: 13px; }
-    .res-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
-    .score-row { display: flex; align-items: center; gap: 7px; }
-    .score-n { font-weight: 700; font-size: 15px; min-width: 30px; }
+    .res-body { flex: 1; min-width: 0; }
+    .res-name { font-weight: 600; font-size: 13px; line-height: 1.35; }
+    .res-sub { font-size: 10px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .res-score-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .score-n { font-weight: 700; font-size: 16px; min-width: 28px; }
     .sc-pos { color: var(--up); } .sc-neg { color: var(--down); } .sc-zer { color: var(--muted); }
-    .score-bar { height: 5px; border-radius: 3px; }
+    .score-bar { height: 4px; border-radius: 3px; flex-shrink: 0; }
     .sb-pos { background: var(--up); } .sb-neg { background: var(--down); } .sb-zer { background: var(--muted); width: 3px !important; }
-    .tally-str { font-size: 12px; color: var(--dim); white-space: nowrap; }
-    .mini-voters { display: flex; flex-wrap: wrap; gap: 3px; }
-    .mv-chip { font-size: 10px; padding: 1px 6px; border-radius: 9px; }
+    .tally-str { font-size: 11px; color: var(--dim); }
+    .mini-voters { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .mv-chip { font-size: 10px; padding: 2px 7px; border-radius: 9px; }
     .empty-results { text-align: center; padding: 60px 20px; color: var(--muted); }
     .empty-results .icon { font-size: 36px; margin-bottom: 12px; }
 
@@ -748,13 +748,11 @@ function renderResults() {
   }
 
   const maxAbs = Math.max(...rows.map(r=>Math.abs(r.score)), 1);
-  let html = `<table class="results-table"><thead><tr>
-    <th>#</th><th>Event</th><th>Score</th><th>👍/❓/👎</th><th>Voters</th>
-  </tr></thead><tbody>`;
+  let html = '<div class="results-list">';
 
   rows.forEach((r,i) => {
     const rkCls = i===0?'rk-g':i===1?'rk-s':i===2?'rk-b':'';
-    const w = Math.round(Math.abs(r.score)/maxAbs*80);
+    const w = Math.max(Math.round(Math.abs(r.score)/maxAbs*80), 3);
     const barCls = r.score>0?'sb-pos':r.score<0?'sb-neg':'sb-zer';
     const nCls = r.score>0?'sc-pos':r.score<0?'sc-neg':'sc-zer';
     const chips = r.voters.map(v => {
@@ -762,16 +760,22 @@ function renderResults() {
       const emoji = v.v==='up'?'👍':v.v==='neut'?'❓':'👎';
       return `<span class="mv-chip voter-pip ${vCls}">${emoji} ${v.name}</span>`;
     }).join('');
-    html += `<tr>
-      <td><span class="rank ${rkCls}">${i+1}</span></td>
-      <td><div class="res-name">${r.e.name}</div><div class="res-sub">${r.e.cat} · ${r.e.date} · ${r.e.time}</div></td>
-      <td><div class="score-row"><span class="score-n ${nCls}">${r.score>0?'+':''}${r.score}</span><div class="score-bar ${barCls}" style="width:${w}px"></div></div></td>
-      <td class="tally-str">${r.up} / ${r.neut} / ${r.down}</td>
-      <td><div class="mini-voters">${chips}</div></td>
-    </tr>`;
+    html += `<div class="res-card">
+      <span class="rank ${rkCls}">${i+1}</span>
+      <div class="res-body">
+        <div class="res-name">${r.e.name}</div>
+        <div class="res-sub">${r.e.cat} · ${r.e.date}</div>
+        <div class="res-score-row">
+          <span class="score-n ${nCls}">${r.score>0?'+':''}${r.score}</span>
+          <div class="score-bar ${barCls}" style="width:${w}px"></div>
+          <span class="tally-str">👍${r.up} ❓${r.neut} 👎${r.down}</span>
+        </div>
+        ${chips ? `<div class="mini-voters">${chips}</div>` : ''}
+      </div>
+    </div>`;
   });
 
-  html += '</tbody></table>';
+  html += '</div>';
   document.getElementById('resultsTable').innerHTML = html;
 }
 
