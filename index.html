@@ -197,13 +197,13 @@ const FIREBASE_CONFIG = {
 <!-- NAME MODAL -->
 <div class="modal-overlay" id="nameModal" style="display:none">
   <div class="modal">
-    <div class="modal-logo">Dark Mofo 2026 · Group Agenda</div>
-    <h2>Who are you?</h2>
-    <p>Enter your name so the group knows who's voting. You'll be voting live — everyone will see your picks in real time.</p>
+    <div class="modal-logo">Dark Mofo 2026 · Group Rite</div>
+    <h2>Name yourself.</h2>
+    <p>The coven needs a name. Your votes are cast live — the whole group watches in real time.</p>
     <label for="nameInput">Your name</label>
     <input type="text" id="nameInput" placeholder="e.g. Jackson" maxlength="30" autocomplete="off">
     <div style="display:flex;gap:10px;margin-top:4px">
-      <button class="btn" onclick="submitName()">Join Room →</button>
+      <button class="btn" onclick="submitName()">Enter →</button>
     </div>
   </div>
 </div>
@@ -214,7 +214,7 @@ const FIREBASE_CONFIG = {
     <div class="header-inner">
       <div class="header-brand">
         <div class="eyebrow">Dark Mofo 2026 · 11–22 June · Hobart</div>
-        <div class="title">Group Agenda Builder</div>
+        <div class="title">Group Rite</div>
       </div>
     </div>
   </header>
@@ -267,12 +267,12 @@ const FIREBASE_CONFIG = {
     <div class="header-inner">
       <div class="header-brand">
         <div class="eyebrow">Dark Mofo 2026 · 11–22 June · Hobart</div>
-        <div class="title">Group Agenda Builder</div>
+        <div class="title">Group Rite</div>
       </div>
       <div class="room-chip">
         <span class="live-dot"></span>
         <div>
-          <div class="room-label">Room</div>
+          <div class="room-label">Coven</div>
           <div class="room-code" id="roomDisplay">—</div>
         </div>
         <button onclick="copyRoomLink()" title="Copy share link">🔗</button>
@@ -288,8 +288,8 @@ const FIREBASE_CONFIG = {
 
   <div class="tabs">
     <div class="tabs-inner">
-      <div class="tab active" data-tab="votes" onclick="switchTab('votes')">👍 My Votes</div>
-      <div class="tab" data-tab="results" onclick="switchTab('results')">📊 Live Results</div>
+      <div class="tab active" data-tab="votes" onclick="switchTab('votes')">✦ My Picks</div>
+      <div class="tab" data-tab="results" onclick="switchTab('results')">⚡ The Reckoning</div>
     </div>
   </div>
 
@@ -299,7 +299,7 @@ const FIREBASE_CONFIG = {
       <!-- VOTES TAB -->
       <div id="tab-votes">
         <div class="search-row">
-          <input type="text" class="search-input" id="searchInput" placeholder="Search events, artists, venues, dates…" oninput="filterEvents()">
+          <input type="text" class="search-input" id="searchInput" placeholder="Search the program…" oninput="filterEvents()">
         </div>
         <div id="eventsList"></div>
       </div>
@@ -316,9 +316,9 @@ const FIREBASE_CONFIG = {
 
     <!-- LIVE FEED SIDEBAR -->
     <div class="feed-pane">
-      <div class="feed-title"><span class="live-dot"></span> Live Activity</div>
+      <div class="feed-title"><span class="live-dot"></span> The Feed</div>
       <div class="feed-items" id="feedItems">
-        <div class="feed-empty">Votes will appear here in real time</div>
+        <div class="feed-empty">The dark is quiet. Cast something.</div>
       </div>
     </div>
   </div>
