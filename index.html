@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dark Mofo 2026 — Group Agenda</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #181818; --surface3: #222;
+      --accent: #cc1414; --accent-h: #e01818;
+      --text: #e8e8e8; --dim: #888; --muted: #444;
+      --border: #222; --border-h: #333;
+      --up: #22c55e; --neut: #777; --down: #ef4444;
+      --gold: #ffd700; --silver: #bbb; --bronze: #cd7f32;
+      --feed-w: 280px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.5; min-height: 100vh; }
+    a { color: var(--accent); }
+
+    /* ── MODALS ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: var(--surface); border: 1px solid var(--border-h); border-radius: 10px; padding: 32px; max-width: 500px; width: 100%; }
+    .modal-logo { font-size: 10px; letter-spacing: .35em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+    .modal h2 { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+    .modal p { color: var(--dim); font-size: 13px; line-height: 1.65; margin-bottom: 16px; }
+    .modal ol { color: var(--dim); font-size: 13px; line-height: 1.8; padding-left: 18px; margin-bottom: 20px; }
+    .modal ol li { margin-bottom: 4px; }
+    .modal ol li code { background: var(--surface3); padding: 1px 5px; border-radius: 3px; font-size: 11px; color: var(--text); }
+    .modal label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); margin-bottom: 6px; }
+    .modal input, .modal textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border-h); color: var(--text); padding: 10px 12px; border-radius: 5px; font-size: 13px; margin-bottom: 14px; transition: border-color .2s; font-family: inherit; }
+    .modal input:focus, .modal textarea:focus { outline: none; border-color: var(--accent); }
+    .modal input::placeholder, .modal textarea::placeholder { color: var(--muted); }
+    .modal textarea { font-family: 'SF Mono', monospace; font-size: 11px; min-height: 120px; resize: vertical; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #fff; border: none; padding: 11px 22px; border-radius: 5px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: background .2s; }
+    .btn:hover { background: var(--accent-h); }
+    .btn:disabled { background: var(--surface3); color: var(--muted); cursor: not-allowed; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border-h); color: var(--dim); }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+    .btn-sm { padding: 7px 14px; font-size: 11px; }
+
+    /* ── HEADER ── */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; position: sticky; top: 0; z-index: 90; }
+    .header-inner { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; max-width: 1400px; margin: 0 auto; }
+    .header-brand .eyebrow { font-size: 9px; letter-spacing: .35em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+    .header-brand .title { font-size: 15px; font-weight: 700; letter-spacing: .03em; }
+    .room-chip { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border-h); border-radius: 5px; padding: 5px 10px; font-size: 12px; }
+    .room-chip .room-label { color: var(--dim); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }
+    .room-chip .room-code { font-weight: 700; letter-spacing: .1em; }
+    .room-chip button { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 13px; padding: 0 2px; transition: color .15s; }
+    .room-chip button:hover { color: var(--text); }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--up); box-shadow: 0 0 0 2px rgba(34,197,94,.2); animation: pulse 2s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+    .live-count { font-size: 11px; color: var(--dim); white-space: nowrap; }
+    .live-count strong { color: var(--up); }
+    .header-name { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .header-name .you-label { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .1em; }
+    .header-name .you-val { font-size: 13px; font-weight: 600; }
+    .change-name { font-size: 11px; color: var(--dim); cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; }
+    .change-name:hover { color: var(--text); }
+
+    /* ── TABS ── */
+    .tabs { background: var(--surface); border-bottom: 1px solid var(--border); }
+    .tabs-inner { max-width: 1400px; margin: 0 auto; padding: 0 20px; display: flex; }
+    .tab { padding: 12px 18px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; color: var(--dim); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .2s; user-select: none; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    /* ── LAYOUT ── */
+    .layout { display: flex; max-width: 1400px; margin: 0 auto; min-height: calc(100vh - 100px); }
+    .main-pane { flex: 1; min-width: 0; padding: 24px 20px 100px; }
+    .feed-pane { width: var(--feed-w); flex-shrink: 0; border-left: 1px solid var(--border); padding: 20px 16px; position: sticky; top: 88px; height: calc(100vh - 88px); overflow-y: auto; }
+    @media (max-width: 900px) { .feed-pane { display: none; } }
+
+    /* ── SEARCH ── */
+    .search-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    .search-input { flex: 1; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 6px; font-size: 13px; }
+    .search-input:focus { outline: none; border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); }
+
+    /* ── CATEGORY ── */
+    .cat-section { margin-bottom: 28px; }
+    .cat-header { font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); font-weight: 700; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+
+    /* ── EVENT CARD ── */
+    .event-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--border); border-radius: 6px; padding: 13px 13px 13px 15px; margin-bottom: 7px; display: flex; gap: 12px; align-items: flex-start; transition: border-color .2s; }
+    .event-card:hover { border-color: var(--border-h); border-left-color: var(--border-h); }
+    .event-card.voted-up    { border-left-color: var(--up)   !important; }
+    .event-card.voted-neut  { border-left-color: var(--neut) !important; }
+    .event-card.voted-down  { border-left-color: var(--down) !important; }
+    .event-info { flex: 1; min-width: 0; }
+    .event-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; }
+    .badges { margin-bottom: 5px; }
+    .badge { display: inline-block; font-size: 9px; letter-spacing: .07em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; font-weight: 700; margin-right: 4px; }
+    .b-excl { background: #3a1500; color: #ff8c42; }
+    .b-free { background: #002a12; color: #22c55e; }
+    .b-18   { background: #2a0000; color: #ff7070; }
+    .b-14   { background: #1a1a00; color: #cccc00; }
+    .b-laun { background: #0a1a2a; color: #7ab8e8; }
+    .event-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 5px; font-size: 11px; color: var(--dim); }
+    .event-desc { font-size: 11px; color: #888; line-height: 1.55; }
+    /* Other voters on card */
+    .card-voters { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+    .voter-pip { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; padding: 1px 6px; border-radius: 10px; }
+    .vp-up   { background: rgba(34,197,94,.1);  color: var(--up); }
+    .vp-neut { background: rgba(119,119,119,.1); color: #aaa; }
+    .vp-down { background: rgba(239,68,68,.1);   color: var(--down); }
+
+    /* ── VOTE BUTTONS ── */
+    .vote-btns { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+    .vbtn { width: 38px; height: 38px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface2); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all .15s; color: var(--dim); user-select: none; }
+    .vbtn:hover { border-color: var(--border-h); transform: scale(1.07); }
+    .vbtn.a-up   { background: rgba(34,197,94,.14);  border-color: var(--up);   color: var(--up); }
+    .vbtn.a-neut { background: rgba(119,119,119,.14); border-color: var(--neut); color: #ccc; }
+    .vbtn.a-down { background: rgba(239,68,68,.14);   border-color: var(--down); color: var(--down); }
+
+    /* ── ACTION BAR ── */
+    .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 12px 20px; z-index: 89; }
+    .ab-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+    .ab-tally { font-size: 12px; color: var(--dim); }
+    .ab-tally strong { color: var(--text); }
+
+    /* ── RESULTS ── */
+    .results-wrap { padding-bottom: 40px; }
+    .results-stats { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 16px; }
+    .stat-chip .n { font-size: 22px; font-weight: 700; display: block; }
+    .stat-chip .l { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .1em; }
+    .stat-chip.green .n { color: var(--up); }
+    .results-table { width: 100%; border-collapse: collapse; }
+    .results-table th { text-align: left; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .results-table td { padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .results-table tbody tr:hover td { background: var(--surface); }
+    .rank { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 50%; font-size: 10px; font-weight: 700; background: var(--surface3); color: var(--muted); }
+    .rk-g { background: rgba(255,215,0,.15); color: var(--gold); }
+    .rk-s { background: rgba(187,187,187,.12); color: var(--silver); }
+    .rk-b { background: rgba(205,127,50,.15); color: var(--bronze); }
+    .res-name { font-weight: 600; font-size: 13px; }
+    .res-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .score-row { display: flex; align-items: center; gap: 7px; }
+    .score-n { font-weight: 700; font-size: 15px; min-width: 30px; }
+    .sc-pos { color: var(--up); } .sc-neg { color: var(--down); } .sc-zer { color: var(--muted); }
+    .score-bar { height: 5px; border-radius: 3px; }
+    .sb-pos { background: var(--up); } .sb-neg { background: var(--down); } .sb-zer { background: var(--muted); width: 3px !important; }
+    .tally-str { font-size: 12px; color: var(--dim); white-space: nowrap; }
+    .mini-voters { display: flex; flex-wrap: wrap; gap: 3px; }
+    .mv-chip { font-size: 10px; padding: 1px 6px; border-radius: 9px; }
+    .empty-results { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-results .icon { font-size: 36px; margin-bottom: 12px; }
+
+    /* ── LIVE FEED ── */
+    .feed-title { font-size: 10px; letter-spacing: .25em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .feed-items { display: flex; flex-direction: column; gap: 6px; }
+    .feed-item { background: var(--surface2); border-radius: 5px; padding: 8px 10px; font-size: 11px; line-height: 1.45; animation: slideIn .3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .fi-name { font-weight: 600; }
+    .fi-vote-up   { color: var(--up); }
+    .fi-vote-neut { color: var(--dim); }
+    .fi-vote-down { color: var(--down); }
+    .fi-event { color: var(--dim); }
+    .fi-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .feed-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 20px 0; }
+
+    /* ── SETUP SCREEN ── */
+    .setup-screen { max-width: 560px; margin: 60px auto; padding: 0 20px; }
+    .setup-steps { counter-reset: step; }
+    .setup-step { display: flex; gap: 14px; margin-bottom: 20px; }
+    .setup-step::before { counter-increment: step; content: counter(step); width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .setup-step-body h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .setup-step-body p { font-size: 12px; color: var(--dim); line-height: 1.6; }
+    .setup-step-body code { background: var(--surface3); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+    .config-input { width: 100%; background: var(--surface2); border: 1px solid var(--border-h); color: var(--text); padding: 10px 12px; border-radius: 5px; font-family: 'SF Mono', monospace; font-size: 11px; min-height: 180px; resize: vertical; margin: 12px 0; }
+    .config-input:focus { outline: none; border-color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     FIREBASE CONFIG — paste yours here
+     Get it from console.firebase.google.com
+     Project Settings → Your apps → SDK setup
+     ════════════════════════════════════════════════ -->
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDgW-YgV5yLuCKW3Yq2BBu5xUcvCrxuT18",
+  authDomain: "dark-mofo-2026.firebaseapp.com",
+  databaseURL: "https://dark-mofo-2026-default-rtdb.firebaseio.com",
+  projectId: "dark-mofo-2026",
+  storageBucket: "dark-mofo-2026.firebasestorage.app",
+  messagingSenderId: "461552605528",
+  appId: "1:461552605528:web:3836fb83813b2ef7e1ad2d"
+};
+</script>
+
+<!-- NAME MODAL -->
+<div class="modal-overlay" id="nameModal" style="display:none">
+  <div class="modal">
+    <div class="modal-logo">Dark Mofo 2026 · Group Agenda</div>
+    <h2>Who are you?</h2>
+    <p>Enter your name so the group knows who's voting. You'll be voting live — everyone will see your picks in real time.</p>
+    <label for="nameInput">Your name</label>
+    <input type="text" id="nameInput" placeholder="e.g. Jackson" maxlength="30" autocomplete="off">
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn" onclick="submitName()">Join Room →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP MODAL -->
+<div id="setupScreen" style="display:none">
+  <header>
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="eyebrow">Dark Mofo 2026 · 11–22 June · Hobart</div>
+        <div class="title">Group Agenda Builder</div>
+      </div>
+    </div>
+  </header>
+  <div class="setup-screen">
+    <div style="margin-bottom:28px">
+      <div style="font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:6px">Setup required</div>
+      <h2 style="font-size:22px;font-weight:700;margin-bottom:10px">Connect Firebase for live voting</h2>
+      <p style="color:var(--dim);font-size:13px;line-height:1.65">This app uses Firebase Realtime Database so your group can vote live and see results update in real time. Setup takes about 5 minutes and is completely free.</p>
+    </div>
+    <div class="setup-steps">
+      <div class="setup-step">
+        <div class="setup-step-body">
+          <h3>Create a Firebase project</h3>
+          <p>Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Add project → give it a name (e.g. "dark-mofo-2026") → Continue until done.</p>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-step-body">
+          <h3>Enable Realtime Database</h3>
+          <p>In your project: Build → Realtime Database → Create database → Start in <strong>test mode</strong> → Enable.</p>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-step-body">
+          <h3>Get your config</h3>
+          <p>Project Settings (gear icon) → Your apps → Web app (&lt;/&gt;) → Register app → copy the <code>firebaseConfig</code> object.</p>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-step-body">
+          <h3>Paste your config below</h3>
+          <p>Paste the full <code>firebaseConfig = { ... }</code> object here, then save the HTML file.</p>
+          <textarea class="config-input" id="configPaste" placeholder='Paste your firebaseConfig here, e.g.:&#10;&#10;{&#10;  apiKey: "AIzaSy...",&#10;  authDomain: "your-project.firebaseapp.com",&#10;  databaseURL: "https://your-project-default-rtdb.firebaseio.com",&#10;  projectId: "your-project",&#10;  storageBucket: "your-project.appspot.com",&#10;  messagingSenderId: "123456789",&#10;  appId: "1:123:web:abc"&#10;}'></textarea>
+          <button class="btn" onclick="applyConfig()">Save Config & Launch →</button>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-step-body">
+          <h3>Deploy to Vercel (optional)</h3>
+          <p>Once your config is pasted and saved: go to <a href="https://vercel.com/new" target="_blank">vercel.com/new</a> → drag and drop this HTML file → Deploy. You'll get a shareable URL instantly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+  <header>
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="eyebrow">Dark Mofo 2026 · 11–22 June · Hobart</div>
+        <div class="title">Group Agenda Builder</div>
+      </div>
+      <div class="room-chip">
+        <span class="live-dot"></span>
+        <div>
+          <div class="room-label">Room</div>
+          <div class="room-code" id="roomDisplay">—</div>
+        </div>
+        <button onclick="copyRoomLink()" title="Copy share link">🔗</button>
+      </div>
+      <div class="live-count" id="liveCount"></div>
+      <div class="header-name">
+        <span class="you-label">You:</span>
+        <span class="you-val" id="headerName">—</span>
+        <button class="change-name" onclick="changeName()">change</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tabs-inner">
+      <div class="tab active" data-tab="votes" onclick="switchTab('votes')">👍 My Votes</div>
+      <div class="tab" data-tab="results" onclick="switchTab('results')">📊 Live Results</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="main-pane">
+
+      <!-- VOTES TAB -->
+      <div id="tab-votes">
+        <div class="search-row">
+          <input type="text" class="search-input" id="searchInput" placeholder="Search events, artists, venues, dates…" oninput="filterEvents()">
+        </div>
+        <div id="eventsList"></div>
+      </div>
+
+      <!-- RESULTS TAB -->
+      <div id="tab-results" style="display:none">
+        <div class="results-wrap">
+          <div class="results-stats" id="resultsStats"></div>
+          <div id="resultsTable"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- LIVE FEED SIDEBAR -->
+    <div class="feed-pane">
+      <div class="feed-title"><span class="live-dot"></span> Live Activity</div>
+      <div class="feed-items" id="feedItems">
+        <div class="feed-empty">Votes will appear here in real time</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar" id="actionBar">
+    <div class="ab-inner">
+      <div class="ab-tally" id="abTally">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     EVENTS DATA
+     ════════════════════════════════════════════════ -->
+<script>
+const EVENTS = [
+  // ── SIGNATURE ──────────────────────────────────
+  { id:0,  name:"Night Mass: DEAD END",               cat:"Signature Events",       date:"Fri 12, Sat 13, Fri 19, Sat 20 June",  time:"10PM – 4AM",         venue:"Undisclosed Location",          price:"From $129",          age:"18+",       excl:false, free:false, laun:false, desc:"Surrender to life below the stairs. Dark Mofo's legendary nocturnal ritual — an underground immersive experience running until dawn. Crowded, flashy, smoky, adult themes. Book immediately; it sells out in hours." },
+  { id:1,  name:"Winter Feast",                        cat:"Signature Events",       date:"Thu–Sun 11–14 & 18–20 June / Free Sun 21", time:"4–11PM (Sun 10PM)", venue:"Princes Wharf 1",               price:"$12–$24 / Pass $75", age:"All ages",  excl:false, free:false, laun:false, desc:"A bacchanalian banquet on the fiery banks of the Derwent. 75+ food and drink stallholders, live music and performance nightly. Guest chef Floriano Pellegrino (Michelin-starred Bros', Italy). Sunday 21 June is FREE, supported by City of Hobart." },
+  { id:2,  name:"Ogoh-ogoh: Procession + Burning",     cat:"Signature Events",       date:"Sun 21 June",                          time:"Procession 5PM · Burning 6PM", venue:"Franklin Sq → Regatta Grounds", price:"Free",            age:"All ages",  excl:false, free:true,  laun:false, desc:"A Balinese-inspired ritual in three parts. Commit your fears to a totem skink sculpture (on during festival), then on the solstice join a city-wide procession before watching your fears consumed in fire at the Regatta Grounds." },
+  { id:3,  name:"Nude Solstice Swim",                  cat:"Signature Events",       date:"Sun 21 June",                          time:"TBA",                venue:"Long Beach, Sandy Bay",          price:"Free",               age:"All ages",  excl:false, free:true,  laun:false, desc:"Hobart's most bracing tradition. Strip off and plunge into the icy Derwent River at winter solstice alongside hundreds of others. Equal parts terrifying and euphoric." },
+  // ── MUSIC — ODEON ──────────────────────────────
+  { id:4,  name:"Dry Cleaning",                        cat:"Music — Odeon",          date:"Thu 11 June",                          time:"6:30 – 7:45PM (Doors 6PM)", venue:"Odeon",                        price:"$79",                age:"All ages",  excl:false, free:false, laun:false, desc:"Off-kilter South London art rock. Florence Shaw's deadpan spoken-word narration floats over angular grooves — surreal observations and odd images that linger." },
+  { id:5,  name:"Danny Brown",                         cat:"Music — Odeon",          date:"Thu 11 June",                          time:"9:30 – 10:45PM (Doors 9PM)", venue:"Odeon",                        price:"$99",                age:"18+",       excl:false, free:false, laun:false, desc:"Abrasive, experimental rap. Detroit's master of reinvention pushes hip hop into wild and exhilarating territory with manic energy and unconventional production." },
+  { id:6,  name:"The Black Angels — Passover 20th Anniversary", cat:"Music — Odeon", date:"Fri 12 June",                          time:"9:30 – 10:45PM (Doors 9PM)", venue:"Odeon",                        price:"$99",                age:"18+",       excl:false, free:false, laun:false, desc:"Dark, droning psychedelic rock from Texas. The pioneers mark twenty years of Passover — the record that helped define the 21st century psych revival. Expect the full thing, played loud." },
+  { id:7,  name:"Gabber Eleganza — 10 Years of The Hakke Show", cat:"Music — Odeon", date:"Sat 13 June",                          time:"4:45–5:30PM & 7–7:45PM (two shows)", venue:"Odeon",               price:"$39 per show",       age:"18+",       excl:false, free:false, laun:false, desc:"Hardcore will never die, but you will. A legion of machine-steppers hammer to a thunderous set marking ten years of Gabber Eleganza's devotion to 90s hardcore. Two separate shows on the same night." },
+  { id:8,  name:"Daniel Avery (Live)",                 cat:"Music — Odeon",          date:"Sat 13 June",                          time:"9:30 – 10:45PM (Doors 9PM)", venue:"Odeon",                        price:"$89",                age:"18+",       excl:false, free:false, laun:false, desc:"From 90s alt rock to industrial techno, the revered British producer and composer channels every corner of his sound in his most ambitious show to date." },
+  { id:9,  name:"Purity Ring",                         cat:"Music — Odeon",          date:"Sun 14 June",                          time:"6:30 – 7:45PM (Doors 6PM)", venue:"Odeon",                        price:"$79",                age:"All ages",  excl:false, free:false, laun:false, desc:"Constellations of dizzying electropop. The Canadian duo build worlds of their own with euphoric soundscapes and spectral, stream-of-consciousness vocals. Immaculate live production." },
+  { id:10, name:"Snapped Ankles ★ AUS Exclusive",      cat:"Music — Odeon",          date:"Sun 14 June",                          time:"9:30 – 10:45PM (Doors 9PM)", venue:"Odeon",                        price:"$79",                age:"18+",       excl:true,  free:false, laun:false, desc:"Dance-punk gone feral. The mysterious East London collective summons the untamed energy of the forest with wooden log synths and propulsive rhythms. Hard times require furious dancing." },
+  { id:11, name:"Hymns to the Dead ★ AUS Exclusive",   cat:"Music — Odeon",          date:"Wed 17 June",                          time:"7 – 11PM (Doors 6:30PM)",    venue:"Odeon",                        price:"$99",                age:"18+",       excl:true,  free:false, laun:false, desc:"Curated by Matthew Chalk. Deafening. Tiamat (Swedish gothic metal) · Negative Plane (blackened NYC) · Emasculator (brutal death metal) · Grave Upheaval (AUS necromantic death metal). Four bands, four hours." },
+  { id:12, name:"Headache ★ AUS Exclusive",            cat:"Music — Odeon",          date:"Thu 18 June",                          time:"6:30 – 7:45PM (Doors 6PM)", venue:"Odeon",                        price:"$79",                age:"18+",       excl:true,  free:false, laun:false, desc:"The mysterious collaboration between London producer Vegyn and poet Francis Hornsby Clark. Dance slow, dance fast, don't dance at all." },
+  { id:13, name:"Power Trip ★ AUS Exclusive",          cat:"Music — Odeon",          date:"Thu 18 June",                          time:"9:30 – 10:45PM (Doors 9PM)", venue:"Odeon",                        price:"$109",               age:"18+",       excl:true,  free:false, laun:false, desc:"Adrenaline-fuelled thrash metal from Texas. Enraged vocals and relentless riffs that never let up. An Australian exclusive." },
+  { id:14, name:"Ninajirachi",                         cat:"Music — Odeon",          date:"Fri 19 June",                          time:"6:30 – 7:45PM (Doors 6PM)", venue:"Odeon",                        price:"$89",                age:"14+",       excl:false, free:false, laun:false, desc:"Soul-bound to her computer, the Australian electronic artist helms a new generation of maximalist EDM." },
+  { id:15, name:"Blackwater Holylight",                cat:"Music — Odeon",          date:"Sat 20 June",                          time:"6:30 – 7:45PM (Doors 6PM)", venue:"Odeon",                        price:"$79",                age:"14+",       excl:false, free:false, laun:false, desc:"Grief, grace and grandeur from Los Angeles. These sirens carve out a sound both delicate and heavy — doom-drenched riffs and shimmering vocals." },
+  { id:16, name:"Princess Nokia ★ AUS Exclusive",      cat:"Music — Odeon",          date:"Sat 20 June",                          time:"9:30 – 10:45PM (Doors 9PM)", venue:"Odeon",                        price:"$109",               age:"18+",       excl:true,  free:false, laun:false, desc:"Supreme witch of New York's hip hop underground. Merciless lyricism and surreal self-portraits from the Afro-Indigenous radical. A ferociously original performer." },
+  { id:17, name:"Borderlands ★ AUS Exclusive",         cat:"Music — Odeon",          date:"Sun 21 June",                          time:"4:30 – 7PM (Doors 4PM)",     venue:"Odeon",                        price:"$89",                age:"All ages",  excl:true,  free:false, laun:false, desc:"Extreme atmospheres of light and sound curated by Lawrence English / Room40. Eraserhead Xiu Xiu perform the David Lynch soundtrack live with film · Loscil (BC wildfires soundscape) · amby downs (feral deer drones)." },
+  { id:18, name:"WU LYF ★ AUS Exclusive",              cat:"Music — Odeon",          date:"Sun 21 June",                          time:"9:30 – 10:45PM (Doors 9PM)", venue:"Odeon",                        price:"$79",                age:"18+",       excl:true,  free:false, laun:false, desc:"After a decade-long silence, the elusive Manchester outfit resurfaces with vocal-shredding melodrama. Go Tell Fire to the Mountain is a cult record. Seeing them live is genuinely rare." },
+  // ── MUSIC — ALTAR BAR ──────────────────────────
+  { id:19, name:"Iglooghost + Troth",                  cat:"Music — Altar Bar",      date:"Thu 11 June",                          time:"7:30 – 9:15PM (Doors 7PM)", venue:"Altar Bar",                    price:"$49",                age:"18+",       excl:false, free:false, laun:false, desc:"Iglooghost: grime-streaked electronic wastelands from Bristol's hyperactive imagination. Supported by Troth — local ambient-pop duo specialising in environmental ritual." },
+  { id:20, name:"Sassy 009 ★ AUS Exclusive",           cat:"Music — Altar Bar",      date:"Fri 12 June",                          time:"8 – 9:15PM (Doors 7:30PM)", venue:"Altar Bar",                    price:"$59",                age:"18+",       excl:true,  free:false, laun:false, desc:"The sultry, shapeshifting electropop project from Oslo-based producer, songwriter and vocalist Sunniva Lindgård. An Australian exclusive." },
+  { id:21, name:"Chat Pile",                           cat:"Music — Altar Bar",      date:"Sat 13 June",                          time:"8 – 9:15PM (Doors 7:30PM)", venue:"Altar Bar",                    price:"$69",                age:"18+",       excl:false, free:false, laun:false, desc:"Recoil as Oklahoma City's sludgy noise rock quartet transforms Altar Bar into a grindhouse slaughterfest of sound. One of the most viscerally intense live bands right now." },
+  { id:22, name:"Miss Kaninna + emi emi",              cat:"Music — Altar Bar",      date:"Wed 17 June",                          time:"8 – 10PM (Doors 7:30PM)",    venue:"Altar Bar",                    price:"$49",                age:"18+",       excl:false, free:false, laun:false, desc:"Miss Kaninna: First Nations rising star, unflinching self-portraits and ferocious charisma. Supported by emi emi — experimental J-pop project from Lutruwita." },
+  { id:23, name:"Lord Spikeheart ★ AUS Exclusive",     cat:"Music — Altar Bar",      date:"Thu 18 June",                          time:"7:45 – 9:15PM (Doors 7:30PM)", venue:"Altar Bar",                  price:"$49",                age:"18+",       excl:true,  free:false, laun:false, desc:"Figurehead of Africa's heavy scene, pushing the limits of extreme music with metal, rap, electronics and IDM. Supported by Test — experimental grindcore from São Paulo's underground." },
+  { id:24, name:"Kelly Moran ★ AUS Exclusive",         cat:"Music — Altar Bar",      date:"Fri 19 June",                          time:"8 – 9:15PM (Doors 7:30PM)", venue:"Altar Bar",                    price:"$49",                age:"18+",       excl:true,  free:false, laun:false, desc:"The New York composer coaxes vast emotional weather from the piano with compositions that bloom toward quiet rapture." },
+  { id:25, name:"Acid Mothers Temple ★ AUS Exclusive", cat:"Music — Altar Bar",      date:"Sat 20 June",                          time:"8 – 9:15PM (Doors 7:30PM)", venue:"Altar Bar",                    price:"$59",                age:"18+",       excl:true,  free:false, laun:false, desc:"Sprawling, improvised psychedelic music from Japan, guided by 'cosmic translator' Makoto Kawabata. An Australian exclusive." },
+  { id:26, name:"Protomartyr + Liquid Nails",          cat:"Music — Altar Bar",      date:"Sun 21 June",                          time:"6:30 – 9PM (Doors 6PM)",     venue:"Altar Bar",                    price:"$59",                age:"18+",       excl:false, free:false, laun:false, desc:"Austere post-punk from Detroit's industrial sprawl. Hard-edged and rhythm-driven. Supported by Tasmania's own post-punk three-piece Liquid Nails." },
+  // ── MUSIC — OTHER VENUES ───────────────────────
+  { id:27, name:"The Gesualdo Six",                    cat:"Music — Other Venues",   date:"Wed 17 June",                          time:"7:30 – 9PM",                 venue:"MONA — Elektra Amphitheatre", price:"Museum entry",       age:"All ages",  excl:false, free:false, laun:false, desc:"From the hallowed halls of British cathedrals, one of the UK's finest vocal ensembles goes medieval to modern inside Elektra, Anselm Kiefer's colossal concrete amphitheatre at Mona." },
+  { id:28, name:"Baker Boy + thatboykwame — LAUNCESTON", cat:"Music — Other Venues", date:"Thu 11 June",                         time:"7:30 – 10PM (Doors 7PM)",    venue:"Albert Hall, Launceston",      price:"$79",                age:"All ages",  excl:false, free:false, laun:true,  desc:"Hip hop that burns bright and cuts deep from Baker Boy — ancestral power, resilience and reclamation woven through Yolŋu Matha, English, and Burarra language. Note: Albert Hall is in Launceston, ~3hr from Hobart." },
+  { id:29, name:"Folk Bitch Trio + Chamberwoman — LAUNCESTON", cat:"Music — Other Venues", date:"Fri 12 June",                   time:"7:30 – 10PM (Doors 7PM)",    venue:"Albert Hall, Launceston",      price:"$49",                age:"All ages",  excl:false, free:false, laun:true,  desc:"Layered folk epics from three sharp tongues — fantasies, daydreams, and humiliations, spun into rich harmonies. Supported by Chamberwoman. Note: Albert Hall is in Launceston, ~3hr from Hobart." },
+  // ── FREE — DARK PARK ───────────────────────────
+  { id:30, name:"Dark Park (free outdoor precinct)",   cat:"Free — Dark Park",       date:"Thu–Sun 11–14 & 18–21 June",           time:"4 – 10PM daily",            venue:"Hunter Street Waterfront",     price:"Free",               age:"All ages",  excl:false, free:true,  laun:false, desc:"The open-air heart of Dark Mofo — a free waterfront precinct of large-scale art, fire and spectacle. Multiple major works live here simultaneously. Essential after dark." },
+  { id:31, name:"APEX — Arthur Jafa",                  cat:"Free — Dark Park",       date:"Thu–Sun 11–14 & 18–21 June",           time:"4 – 10PM",                  venue:"Dark Park",                    price:"Free",               age:"All ages",  excl:false, free:true,  laun:false, desc:"A relentless techno-driven montage fusing pop culture, heroes, villains, history and present into a charged expression of Black life, culture, and resistance." },
+  { id:32, name:"Perros Chaos — Lolo & Sosaku",        cat:"Free — Dark Park",       date:"Thu–Sun 11–14 & 18–21 June",           time:"4 – 10PM",                  venue:"Dark Park",                    price:"Free",               age:"All ages",  excl:false, free:true,  laun:false, desc:"Autonomous robot dogs roam an unstable field of industrial noise, light and fog. Tension thickens, chaos encroaches — a portent of what is coming." },
+  { id:33, name:"La Sombra — Regina José Galindo",     cat:"Free — Dark Park",       date:"Thu–Sun 11–14 & 18–21 June",           time:"4 – 10PM",                  venue:"Dark Park",                    price:"Free",               age:"All ages",  excl:false, free:true,  laun:false, desc:"A German-made leopard tank pursues the artist across a barren field in a continuous loop — charting the insatiable pursuit of the global arms market and the lives it destroys." },
+  { id:34, name:"Soundspace — Boris Acket",            cat:"Free — Dark Park",       date:"Thu–Sun 11–14 & 18–21 June",           time:"4 – 10PM",                  venue:"Dark Park",                    price:"Free",               age:"All ages",  excl:false, free:true,  laun:false, desc:"A kinetic cloud of sound and light, constantly shifting, collapsing and reforming overhead. One of those installations you find yourself returning to multiple times." },
+  // ── FREE — OTHER ───────────────────────────────
+  { id:35, name:"Fakahoko — Kalisolaite 'Uhila",       cat:"Free — Other",           date:"Live: Fri 12 June · Installation: Sat 13–Sun 21 June", time:"Live 7:45–8:25PM · Installation 4–10PM", venue:"Pianos Warehouse", price:"Free",      age:"All ages",  excl:false, free:true,  laun:false, desc:"Chains, connection, and shared vulnerability: a live performance from one of New Zealand's most renowned endurance artists, then a lingering installation. Splashing paint — dress accordingly." },
+  { id:36, name:"Basilica + The Sky Caving In",        cat:"Free — Other",           date:"Thu–Sun 11–14 & 18–21 June",           time:"4 – 10PM",                  venue:"Basilica",                     price:"Free",               age:"All ages",  excl:false, free:true,  laun:false, desc:"A free bar and social space housing Gabriel Lester's installation The Sky Caving In. The Sculpt Box Office is also here — queue from 9am for immersive experience time slots." },
+  { id:37, name:"All the fires come alive",            cat:"Free — Other",           date:"Thu 11 – Sun 21 June (various hours)", time:"9:30AM–8PM (varies)",        venue:"State Library & Archives",     price:"Free",               age:"All ages",  excl:false, free:true,  laun:false, desc:"Arcane knowledge, spirits, and alchemy in the collections of the State Library. Contemporary artists and esoteric texts reignite what's unseen." },
+  // ── MONA ───────────────────────────────────────
+  { id:38, name:"Sex + Death Day Club",                cat:"MONA",                   date:"Thu 11–Mon 15 & Thu 18–Sun 21 June",   time:"10AM – 5PM",                venue:"MONA, Berriedale",             price:"Museum entry",       age:"All ages",  excl:false, free:false, laun:false, desc:"A nightclub running in the daytime at MONA. Ben Salter's hand-selected roster: Alien Nose Job, Captain Fighting Machine, Dag, Feeding Fauna, Jethro Pickett Band, McKisko, Mess Esque, Neuromantics, The Pits + more." },
+  { id:39, name:"House of Mirrors — Wagstaff & Courtney", cat:"MONA",               date:"Thu 11–Mon 15 & Thu 18–Sun 21 June",   time:"11AM – 4PM",                venue:"MONA, Berriedale",             price:"$10",                age:"All ages",  excl:false, free:false, laun:false, desc:"Get lost in your reflection. An outdoor labyrinthine installation of mirrors — endlessly disorienting, surprisingly meditative. One of the most photographed works of every Dark Mofo." },
+  // ── FILM ───────────────────────────────────────
+  { id:40, name:"Stone",                               cat:"Film — State Cinema",    date:"Thu 11 June",  time:"6 – 7:45PM",   venue:"State Cinema",  price:"$20", age:"R",        excl:false, free:false, laun:false, desc:"A motorbike gang becomes the target of a string of murders, prompting a cop to go undercover. Raw 70s Australian exploitation." },
+  { id:41, name:"Metal Skin",                          cat:"Film — State Cinema",    date:"Fri 12 June",  time:"6 – 7:30PM",   venue:"State Cinema",  price:"$20", age:"MA",       excl:false, free:false, laun:false, desc:"A teenager's involvement with a young Don Juan, his girlfriend and a Satan-worshipping shoplifter leads to tragedy." },
+  { id:42, name:"Sirāt",                               cat:"Film — State Cinema",    date:"Sat 13 June",  time:"1 – 3PM",      venue:"State Cinema",  price:"$20", age:"MA",       excl:false, free:false, laun:false, desc:"A father, accompanied by his son, goes looking for his missing daughter in North Africa." },
+  { id:43, name:"The Zone of Interest",                cat:"Film — State Cinema",    date:"Sat 13 June",  time:"4 – 5:45PM",   venue:"State Cinema",  price:"$20", age:"M",        excl:false, free:false, laun:false, desc:"Within this garden, evil can be ignored and atrocities normalised. Jonathan Glazer's devastating portrayal of the Auschwitz commandant's family." },
+  { id:44, name:"Titane",                              cat:"Film — State Cinema",    date:"Sun 14 June",  time:"1 – 2:45PM",   venue:"State Cinema",  price:"$20", age:"R",        excl:false, free:false, laun:false, desc:"Following a series of unexplained crimes, a father is reunited with the son who has been missing for ten years. Julia Ducournau's Palme d'Or-winning body horror." },
+  { id:45, name:"Perfect Days",                        cat:"Film — State Cinema",    date:"Sun 14 June",  time:"4 – 6PM",      venue:"State Cinema",  price:"$20", age:"PG",       excl:false, free:false, laun:false, desc:"Hirayama cleans public toilets in Tokyo, lives in simplicity and daily tranquility. Wim Wenders' quiet, gorgeous meditation on contentment." },
+  { id:46, name:"Blaze",                               cat:"Film — State Cinema",    date:"Mon 15 June",  time:"6 – 8PM",      venue:"State Cinema",  price:"$20", age:"MA",       excl:false, free:false, laun:false, desc:"A reimagining of the life and times of Blaze Foley, the unsung songwriting legend of the Texas Outlaw Music movement." },
+  { id:47, name:"Noise",                               cat:"Film — State Cinema",    date:"Tue 16 June",  time:"6 – 7:45PM",   venue:"State Cinema",  price:"$20", age:"MA",       excl:false, free:false, laun:false, desc:"Two heinous crimes have left a suburban town reeling. This is a story about the wrong person in the right place at the wrong time." },
+  { id:48, name:"The Cars That Ate Paris",              cat:"Film — State Cinema",    date:"Wed 17 June",  time:"6 – 7:30PM",   venue:"State Cinema",  price:"$20", age:"M",        excl:false, free:false, laun:false, desc:"The small town of Paris, Australia deliberately causes car accidents, then salvages valuables from the wrecks. Peter Weir's eerie black comedy." },
+  { id:49, name:"Uncut Gems",                          cat:"Film — State Cinema",    date:"Thu 18 June",  time:"6 – 8:15PM",   venue:"State Cinema",  price:"$20", age:"MA",       excl:false, free:false, laun:false, desc:"With debts mounting and angry collectors closing in, a fast-talking New York jeweller risks everything. The Safdies' relentless, sweat-inducing thriller." },
+  { id:50, name:"Razorback",                           cat:"Film — State Cinema",    date:"Fri 19 June",  time:"6 – 7:30PM",   venue:"State Cinema",  price:"$20", age:"R",        excl:false, free:false, laun:false, desc:"A vicious wild boar terrorizes the Australian outback. Cult 1984 horror from Russell Mulcahy, shot with extraordinary visual flair." },
+  { id:51, name:"This is England",                     cat:"Film — State Cinema",    date:"Sat 20 June",  time:"1 – 2:45PM",   venue:"State Cinema",  price:"$20", age:"MA",       excl:false, free:false, laun:false, desc:"A young boy becomes friends with a gang of skinheads. Shane Meadows' raw, autobiographical portrait of early-80s England." },
+  { id:52, name:"Head On",                             cat:"Film — State Cinema",    date:"Sat 20 June",  time:"4 – 5:45PM",   venue:"State Cinema",  price:"$20", age:"R",        excl:false, free:false, laun:false, desc:"A 19-year-old Greek-Australian youth struggles with sexual identity and has a series of clumsy, passionate encounters. Ana Kokkinos' landmark Australian film." },
+  { id:53, name:"Aftersun",                            cat:"Film — State Cinema",    date:"Sun 21 June",  time:"1 – 3:30PM",   venue:"State Cinema",  price:"$20", age:"R",        excl:false, free:false, laun:false, desc:"A woman reflects on a holiday shared with her father twenty years earlier. Charlotte Wells' devastating, sun-drenched debut." },
+  { id:54, name:"Somersault",                          cat:"Film — State Cinema",    date:"Sun 21 June",  time:"4 – 5:45PM",   venue:"State Cinema",  price:"$20", age:"MA",       excl:false, free:false, laun:false, desc:"A young girl flees her hometown and arrives in the Australian Alps, where new experiences help her learn the difference between sex and love. Cate Shortland's luminous debut." },
+];
+
+// ════════════════════════════════════════════════
+// FIREBASE + STATE
+// ════════════════════════════════════════════════
+let db, roomCode, myName, myVotes = {}, allVotes = {}, activityLog = [];
+const SANITIZE = s => s.replace(/[.#$/\[\]]/g, '_').substring(0, 30);
+
+function init() {
+  const isConfigured = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+  if (!isConfigured) {
+    document.getElementById('setupScreen').style.display = 'block';
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.database();
+
+  // Room from URL or generate new one
+  const params = new URLSearchParams(window.location.search);
+  roomCode = params.get('room');
+  if (!roomCode) {
+    roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    window.history.replaceState({}, '', `?room=${roomCode}`);
+  }
+
+  // Name from storage
+  myName = localStorage.getItem('dmf_name_' + roomCode);
+  if (!myName) {
+    document.getElementById('nameModal').style.display = 'flex';
+  } else {
+    startApp();
+  }
+}
+
+function submitName() {
+  const val = document.getElementById('nameInput').value.trim();
+  if (!val) return;
+  myName = val;
+  localStorage.setItem('dmf_name_' + roomCode, myName);
+  document.getElementById('nameModal').style.display = 'none';
+  startApp();
+}
+document.getElementById('nameInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') submitName(); });
+
+function changeName() {
+  const n = prompt('Enter new name:', myName);
+  if (n && n.trim()) {
+    const oldKey = SANITIZE(myName);
+    myName = n.trim();
+    localStorage.setItem('dmf_name_' + roomCode, myName);
+    // Move votes to new key
+    db.ref(`rooms/${roomCode}/votes/${SANITIZE(myName)}`).set(myVotes);
+    db.ref(`rooms/${roomCode}/votes/${oldKey}`).remove();
+    document.getElementById('headerName').textContent = myName;
+  }
+}
+
+function startApp() {
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('headerName').textContent = myName;
+  document.getElementById('roomDisplay').textContent = roomCode;
+
+  // Listen to all votes
+  db.ref(`rooms/${roomCode}/votes`).on('value', snap => {
+    allVotes = snap.val() || {};
+    myVotes = allVotes[SANITIZE(myName)] || {};
+    const q = document.getElementById('searchInput')?.value || '';
+    renderEvents(q);
+    if (document.getElementById('tab-results').style.display !== 'none') renderResults();
+    updateTally();
+    updateLiveCount();
+  });
+
+  // Listen to activity feed
+  db.ref(`rooms/${roomCode}/activity`).limitToLast(25).on('value', snap => {
+    const data = snap.val() || {};
+    activityLog = Object.values(data).sort((a, b) => b.ts - a.ts);
+    renderFeed();
+  });
+
+  renderEvents();
+  updateTally();
+}
+
+// ════════════════════════════════════════════════
+// VOTING
+// ════════════════════════════════════════════════
+function vote(eventId, val) {
+  if (!myName) return;
+  const current = myVotes[eventId];
+  const newVal = current === val ? null : val;
+  const key = SANITIZE(myName);
+  const path = `rooms/${roomCode}/votes/${key}/${eventId}`;
+
+  if (newVal === null) {
+    db.ref(path).remove();
+  } else {
+    db.ref(path).set(newVal);
+    // Log activity
+    const e = EVENTS.find(ev => ev.id === eventId);
+    db.ref(`rooms/${roomCode}/activity`).push({
+      name: myName, eventId, eventName: e.name, vote: newVal, ts: Date.now()
+    });
+  }
+}
+
+// ════════════════════════════════════════════════
+// RENDER EVENTS
+// ════════════════════════════════════════════════
+function getCats() {
+  const seen = new Set(), list = [];
+  EVENTS.forEach(e => { if (!seen.has(e.cat)) { seen.add(e.cat); list.push(e.cat); } });
+  return list;
+}
+
+function renderEvents(q = '') {
+  const ql = q.toLowerCase();
+  let html = '';
+  getCats().forEach(cat => {
+    const evs = EVENTS.filter(e => e.cat === cat && (!ql ||
+      e.name.toLowerCase().includes(ql) || e.desc.toLowerCase().includes(ql) ||
+      e.date.toLowerCase().includes(ql) || e.venue.toLowerCase().includes(ql)));
+    if (!evs.length) return;
+    html += `<div class="cat-section"><div class="cat-header">${cat}</div>`;
+    evs.forEach(e => { html += cardHTML(e); });
+    html += '</div>';
+  });
+  const el = document.getElementById('eventsList');
+  if (el) el.innerHTML = html || '<div style="padding:40px;text-align:center;color:var(--muted)">No events matched your search.</div>';
+}
+
+function cardHTML(e) {
+  const mv = myVotes[e.id];
+  const cls = mv===1?'voted-up':mv===0?'voted-neut':mv===-1?'voted-down':'';
+  const badges = [
+    e.excl ? '<span class="badge b-excl">AUS Exclusive</span>' : '',
+    e.free ? '<span class="badge b-free">Free</span>' : '',
+    e.laun ? '<span class="badge b-laun">Launceston</span>' : '',
+    e.age==='18+' ? '<span class="badge b-18">18+</span>' : '',
+    e.age==='14+' ? '<span class="badge b-14">14+</span>' : '',
+  ].filter(Boolean).join('');
+
+  // Other voters on this event
+  let voterPips = '';
+  Object.entries(allVotes).forEach(([uKey, uvotes]) => {
+    if (uKey === SANITIZE(myName)) return;
+    const v = uvotes[e.id];
+    if (v === undefined || v === null) return;
+    const uName = Object.values(allVotes).find ? uKey.replace(/_/g, ' ') : uKey;
+    const cls2 = v===1?'vp-up':v===0?'vp-neut':'vp-down';
+    const emoji = v===1?'👍':v===0?'😐':'👎';
+    voterPips += `<span class="voter-pip ${cls2}">${emoji} ${uKey}</span>`;
+  });
+
+  return `<div class="event-card ${cls}" id="card-${e.id}">
+    <div class="event-info">
+      <div class="event-name">${e.name}</div>
+      ${badges ? `<div class="badges">${badges}</div>` : ''}
+      <div class="event-meta">
+        <span>📅 ${e.date}</span>
+        <span>🕐 ${e.time}</span>
+        <span>📍 ${e.venue}</span>
+        <span>🎟 ${e.price}</span>
+      </div>
+      <div class="event-desc">${e.desc}</div>
+      ${voterPips ? `<div class="card-voters">${voterPips}</div>` : ''}
+    </div>
+    <div class="vote-btns">
+      <button class="vbtn ${mv===1?'a-up':''}"   onclick="vote(${e.id},1)"  title="Want to go">👍</button>
+      <button class="vbtn ${mv===0?'a-neut':''}" onclick="vote(${e.id},0)"  title="Maybe">😐</button>
+      <button class="vbtn ${mv===-1?'a-down':''}"onclick="vote(${e.id},-1)" title="Not for me">👎</button>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════
+// RESULTS
+// ════════════════════════════════════════════════
+function renderResults() {
+  const totals = {};
+  EVENTS.forEach(e => { totals[e.id] = { up:0, neut:0, down:0, voters:[] }; });
+
+  Object.entries(allVotes).forEach(([uKey, uvotes]) => {
+    Object.entries(uvotes).forEach(([eid, v]) => {
+      const id = parseInt(eid);
+      if (!totals[id]) return;
+      if (v===1)       { totals[id].up++;   totals[id].voters.push({name:uKey, v:'up'}); }
+      else if (v===0)  { totals[id].neut++; totals[id].voters.push({name:uKey, v:'neut'}); }
+      else if (v===-1) { totals[id].down++; totals[id].voters.push({name:uKey, v:'down'}); }
+    });
+  });
+
+  const rows = EVENTS.map(e => ({
+    e, ...totals[e.id],
+    score: totals[e.id].up - totals[e.id].down,
+    total: totals[e.id].up + totals[e.id].neut + totals[e.id].down,
+  })).filter(r => r.total > 0).sort((a,b) => b.score-a.score || b.up-a.up);
+
+  const voters = Object.keys(allVotes);
+  const statsEl = document.getElementById('resultsStats');
+  statsEl.innerHTML = `
+    <div class="stat-chip"><span class="n">${voters.length}</span><span class="l">Voter${voters.length!==1?'s':''}</span></div>
+    <div class="stat-chip green"><span class="n">${rows.filter(r=>r.score>0).length}</span><span class="l">Crowd Favourites</span></div>
+    <div class="stat-chip"><span class="n">${rows.length}</span><span class="l">Events Voted On</span></div>
+    ${voters.length ? `<div class="stat-chip" style="border-color:var(--border-h)"><span class="n" style="font-size:13px;font-weight:500;color:var(--dim)">${voters.join(', ')}</span><span class="l">In this room</span></div>` : ''}
+  `;
+
+  if (!rows.length) {
+    document.getElementById('resultsTable').innerHTML = '<div class="empty-results"><div class="icon">🗳</div><p>No votes yet — be the first!</p></div>';
+    return;
+  }
+
+  const maxAbs = Math.max(...rows.map(r=>Math.abs(r.score)), 1);
+  let html = `<table class="results-table"><thead><tr>
+    <th>#</th><th>Event</th><th>Score</th><th>👍/😐/👎</th><th>Voters</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach((r,i) => {
+    const rkCls = i===0?'rk-g':i===1?'rk-s':i===2?'rk-b':'';
+    const w = Math.round(Math.abs(r.score)/maxAbs*80);
+    const barCls = r.score>0?'sb-pos':r.score<0?'sb-neg':'sb-zer';
+    const nCls = r.score>0?'sc-pos':r.score<0?'sc-neg':'sc-zer';
+    const chips = r.voters.map(v => {
+      const vCls = v.v==='up'?'vp-up':v.v==='neut'?'vp-neut':'vp-down';
+      const emoji = v.v==='up'?'👍':v.v==='neut'?'😐':'👎';
+      return `<span class="mv-chip voter-pip ${vCls}">${emoji} ${v.name}</span>`;
+    }).join('');
+    html += `<tr>
+      <td><span class="rank ${rkCls}">${i+1}</span></td>
+      <td><div class="res-name">${r.e.name}</div><div class="res-sub">${r.e.cat} · ${r.e.date} · ${r.e.time}</div></td>
+      <td><div class="score-row"><span class="score-n ${nCls}">${r.score>0?'+':''}${r.score}</span><div class="score-bar ${barCls}" style="width:${w}px"></div></div></td>
+      <td class="tally-str">${r.up} / ${r.neut} / ${r.down}</td>
+      <td><div class="mini-voters">${chips}</div></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('resultsTable').innerHTML = html;
+}
+
+// ════════════════════════════════════════════════
+// ACTIVITY FEED
+// ════════════════════════════════════════════════
+function renderFeed() {
+  const el = document.getElementById('feedItems');
+  if (!el) return;
+  if (!activityLog.length) {
+    el.innerHTML = '<div class="feed-empty">Votes will appear here in real time</div>';
+    return;
+  }
+  const voteLabel = v => v===1?'<span class="fi-vote-up">👍 wants to go</span>':v===0?'<span class="fi-vote-neut">😐 is maybe</span>':'<span class="fi-vote-down">👎 passes on</span>';
+  const timeAgo = ts => {
+    const d = Math.floor((Date.now()-ts)/1000);
+    if (d<60) return `${d}s ago`;
+    if (d<3600) return `${Math.floor(d/60)}m ago`;
+    return `${Math.floor(d/3600)}h ago`;
+  };
+  el.innerHTML = activityLog.slice(0,20).map(a =>
+    `<div class="feed-item">
+      <span class="fi-name">${a.name}</span> ${voteLabel(a.vote)} <span class="fi-event">${a.eventName}</span>
+      <div class="fi-time">${timeAgo(a.ts)}</div>
+    </div>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════
+function updateTally() {
+  const ups = Object.values(myVotes).filter(v=>v===1).length;
+  const total = Object.values(myVotes).filter(v=>v!==undefined&&v!==null).length;
+  document.getElementById('abTally').innerHTML =
+    `You've voted on <strong>${total}</strong> events — <strong style="color:var(--up)">👍 ${ups}</strong> going &nbsp;·&nbsp; <strong style="color:var(--down)">👎 ${Object.values(myVotes).filter(v=>v===-1).length}</strong> passing`;
+}
+
+function updateLiveCount() {
+  const count = Object.keys(allVotes).length;
+  const el = document.getElementById('liveCount');
+  if (el) el.innerHTML = count > 0 ? `<strong>${count}</strong> voter${count!==1?'s':''} in room` : '';
+}
+
+function copyRoomLink() {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('.room-chip button');
+    btn.textContent = '✓';
+    setTimeout(() => btn.textContent = '🔗', 2000);
+  });
+}
+
+function filterEvents() {
+  renderEvents(document.getElementById('searchInput').value);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
+  document.getElementById('tab-votes').style.display   = name==='votes'   ? 'block' : 'none';
+  document.getElementById('tab-results').style.display = name==='results' ? 'block' : 'none';
+  document.getElementById('actionBar').style.display   = name==='votes'   ? 'block' : 'none';
+  if (name==='results') renderResults();
+}
+
+function applyConfig() {
+  const raw = document.getElementById('configPaste')?.value;
+  if (!raw) return;
+  alert('Paste the config into the FIREBASE_CONFIG object at the top of the HTML file, save it, and reload. The setup screen will disappear once the config is detected.');
+}
+
+// Refresh feed time labels every 30s
+setInterval(renderFeed, 30000);
+
+// Boot
+init();
+</script>
+</body>
+</html>
