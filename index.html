@@ -82,7 +82,12 @@
 
     /* ── CATEGORY ── */
     .cat-section { margin-bottom: 28px; }
-    .cat-header { font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); font-weight: 700; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+    .cat-header { font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); font-weight: 700; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; }
+    .cat-header:hover { color: var(--accent-h); }
+    .cat-chevron { font-style: normal; font-size: 13px; letter-spacing: 0; transition: transform .2s; }
+    .cat-section.collapsed .cat-chevron { transform: rotate(-90deg); }
+    .cat-body { }
+    .cat-section.collapsed .cat-body { display: none; }
 
     /* ── EVENT CARD ── */
     .event-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--border); border-radius: 6px; padding: 13px 13px 13px 15px; margin-bottom: 7px; display: flex; gap: 12px; align-items: flex-start; transition: border-color .2s; }
@@ -428,6 +433,14 @@ const EVENTS = [
 // ════════════════════════════════════════════════
 let db, roomCode, myName, myVotes = {}, allVotes = {}, activityLog = [];
 let activeDates = new Set();
+let collapsedCats = new Set();
+
+function toggleCat(cat) {
+  collapsedCats.has(cat) ? collapsedCats.delete(cat) : collapsedCats.add(cat);
+  const catId = 'cat-' + cat.replace(/[^a-z0-9]/gi, '-');
+  const el = document.getElementById(catId);
+  if (el) el.classList.toggle('collapsed', collapsedCats.has(cat));
+}
 
 const FESTIVAL_DAYS = [
   {d:11,label:'Thu 11'},{d:12,label:'Fri 12'},{d:13,label:'Sat 13'},{d:14,label:'Sun 14'},
@@ -477,9 +490,8 @@ function toggleCity(city) {
 }
 
 function eventMatchesCity(e) {
-  if (cityFilter.hobart && cityFilter.launceston) return true;
-  if (!cityFilter.launceston && e.laun) return false;
-  if (!cityFilter.hobart && !e.laun) return false;
+  if (e.laun && !cityFilter.launceston) return false;
+  if (!e.laun && !cityFilter.hobart) return false;
   return true;
 }
 
@@ -613,9 +625,13 @@ function renderEvents(q = '') {
       e.name.toLowerCase().includes(ql) || e.desc.toLowerCase().includes(ql) ||
       e.date.toLowerCase().includes(ql) || e.venue.toLowerCase().includes(ql)));
     if (!evs.length) return;
-    html += `<div class="cat-section"><div class="cat-header">${cat}</div>`;
+    const catId = 'cat-' + cat.replace(/[^a-z0-9]/gi, '-');
+    const collapsed = collapsedCats.has(cat);
+    html += `<div class="cat-section${collapsed?' collapsed':''}" id="${catId}">`;
+    html += `<div class="cat-header" onclick="toggleCat('${cat.replace(/'/g,"\\'")}')"><span>${cat}</span><i class="cat-chevron">▾</i></div>`;
+    html += `<div class="cat-body">`;
     evs.forEach(e => { html += cardHTML(e); });
-    html += '</div>';
+    html += '</div></div>';
   });
   const el = document.getElementById('eventsList');
   if (el) el.innerHTML = html || '<div style="padding:40px;text-align:center;color:var(--muted)">No events matched your search.</div>';
@@ -667,7 +683,7 @@ function cardHTML(e) {
     if (v === undefined || v === null) return;
     const uName = Object.values(allVotes).find ? uKey.replace(/_/g, ' ') : uKey;
     const cls2 = v===1?'vp-up':v===0?'vp-neut':'vp-down';
-    const emoji = v===1?'👍':v===0?'😐':'👎';
+    const emoji = v===1?'👍':v===0?'❓':'👎';
     voterPips += `<span class="voter-pip ${cls2}">${emoji} ${uKey}</span>`;
   });
 
@@ -688,7 +704,7 @@ function cardHTML(e) {
     </div>
     <div class="vote-btns">
       <button class="vbtn ${mv===1?'a-up':''}"   onclick="vote(${e.id},1)"  title="Want to go">👍</button>
-      <button class="vbtn ${mv===0?'a-neut':''}" onclick="vote(${e.id},0)"  title="Maybe">😐</button>
+      <button class="vbtn ${mv===0?'a-neut':''}" onclick="vote(${e.id},0)"  title="Maybe">❓</button>
       <button class="vbtn ${mv===-1?'a-down':''}"onclick="vote(${e.id},-1)" title="Not for me">👎</button>
     </div>
   </div>`;
@@ -733,7 +749,7 @@ function renderResults() {
 
   const maxAbs = Math.max(...rows.map(r=>Math.abs(r.score)), 1);
   let html = `<table class="results-table"><thead><tr>
-    <th>#</th><th>Event</th><th>Score</th><th>👍/😐/👎</th><th>Voters</th>
+    <th>#</th><th>Event</th><th>Score</th><th>👍/❓/👎</th><th>Voters</th>
   </tr></thead><tbody>`;
 
   rows.forEach((r,i) => {
@@ -743,7 +759,7 @@ function renderResults() {
     const nCls = r.score>0?'sc-pos':r.score<0?'sc-neg':'sc-zer';
     const chips = r.voters.map(v => {
       const vCls = v.v==='up'?'vp-up':v.v==='neut'?'vp-neut':'vp-down';
-      const emoji = v.v==='up'?'👍':v.v==='neut'?'😐':'👎';
+      const emoji = v.v==='up'?'👍':v.v==='neut'?'❓':'👎';
       return `<span class="mv-chip voter-pip ${vCls}">${emoji} ${v.name}</span>`;
     }).join('');
     html += `<tr>
@@ -769,7 +785,7 @@ function renderFeed() {
     el.innerHTML = '<div class="feed-empty">Votes will appear here in real time</div>';
     return;
   }
-  const voteLabel = v => v===1?'<span class="fi-vote-up">👍 wants to go</span>':v===0?'<span class="fi-vote-neut">😐 is maybe</span>':'<span class="fi-vote-down">👎 passes on</span>';
+  const voteLabel = v => v===1?'<span class="fi-vote-up">👍 wants to go</span>':v===0?'<span class="fi-vote-neut">❓ is undecided</span>':'<span class="fi-vote-down">👎 passes on</span>';
   const timeAgo = ts => {
     const d = Math.floor((Date.now()-ts)/1000);
     if (d<60) return `${d}s ago`;
