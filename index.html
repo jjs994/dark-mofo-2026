@@ -316,6 +316,13 @@ const FIREBASE_CONFIG = {
           <div class="date-pills" id="datePills"></div>
           <button class="date-clear" id="dateClearBtn" onclick="clearDates()" style="display:none">Clear</button>
         </div>
+        <div class="date-filter-row" style="padding-top:4px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+          <span class="date-filter-label">City</span>
+          <div class="date-pills">
+            <button class="date-pill active" id="cityHobart" onclick="toggleCity('hobart')">Hobart</button>
+            <button class="date-pill active" id="cityLaunceston" onclick="toggleCity('launceston')">Launceston</button>
+          </div>
+        </div>
         <div id="eventsList"></div>
       </div>
 
@@ -458,6 +465,24 @@ function clearDates() {
   renderEvents(document.getElementById('searchInput')?.value || '');
 }
 
+let cityFilter = { hobart: true, launceston: true };
+
+function toggleCity(city) {
+  cityFilter[city] = !cityFilter[city];
+  // Don't let both be off
+  if (!cityFilter.hobart && !cityFilter.launceston) cityFilter[city] = true;
+  document.getElementById('cityHobart').classList.toggle('active', cityFilter.hobart);
+  document.getElementById('cityLaunceston').classList.toggle('active', cityFilter.launceston);
+  renderEvents(document.getElementById('searchInput')?.value || '');
+}
+
+function eventMatchesCity(e) {
+  if (cityFilter.hobart && cityFilter.launceston) return true;
+  if (!cityFilter.launceston && e.laun) return false;
+  if (!cityFilter.hobart && !e.laun) return false;
+  return true;
+}
+
 function eventMatchesDates(e) {
   if (activeDates.size === 0) return true;
   const daySet = new Set();
@@ -584,7 +609,7 @@ function renderEvents(q = '') {
   const ql = q.toLowerCase();
   let html = '';
   getCats().forEach(cat => {
-    const evs = EVENTS.filter(e => e.cat === cat && eventMatchesDates(e) && (!ql ||
+    const evs = EVENTS.filter(e => e.cat === cat && eventMatchesDates(e) && eventMatchesCity(e) && (!ql ||
       e.name.toLowerCase().includes(ql) || e.desc.toLowerCase().includes(ql) ||
       e.date.toLowerCase().includes(ql) || e.venue.toLowerCase().includes(ql)));
     if (!evs.length) return;
@@ -594,6 +619,22 @@ function renderEvents(q = '') {
   });
   const el = document.getElementById('eventsList');
   if (el) el.innerHTML = html || '<div style="padding:40px;text-align:center;color:var(--muted)">No events matched your search.</div>';
+}
+
+function darkMofoURL(e) {
+  const slug = e.name
+    .toLowerCase()
+    .replace(/\s*★.*$/, '')
+    .replace(/\s*—\s*(launceston|passover.*|10 years.*|wagstaff.*|arthur jafa|lolo.*|boris.*|regina.*)/i, '')
+    .replace(/\s*—\s*[a-z\s]+$/i, s => s.length < 30 ? '' : s) // remove short subtitles
+    .replace(/\s*\(live\)/i, '')
+    .replace(/\s*\(free.*?\)/i, '')
+    .replace(/\s*\+\s*.+$/, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+  return 'https://darkmofo.net.au/program/' + slug;
 }
 
 function spotifyURL(e) {
@@ -642,6 +683,7 @@ function cardHTML(e) {
         ${spotifyURL(e) ? `<a href="${spotifyURL(e)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;color:#1DB954;font-size:11px;font-weight:600;text-decoration:none;opacity:.85;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.85"><svg width="11" height="11" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg> Spotify</a>` : ''}
       </div>
       <div class="event-desc">${e.desc}</div>
+      <a href="${darkMofoURL(e)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--accent);text-decoration:none;opacity:.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8">darkmofo.net.au →</a>
       ${voterPips ? `<div class="card-voters">${voterPips}</div>` : ''}
     </div>
     <div class="vote-btns">
